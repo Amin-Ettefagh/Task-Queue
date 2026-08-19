@@ -1466,3 +1466,23 @@ body {
     min-height: 32px;
   }
 }
+
+
+/* Jalali date fields */
+.date-format-hint {
+  margin-left: 5px;
+  border: 1px solid rgba(59, 130, 246, .12);
+  border-radius: 999px;
+  background: rgba(59, 130, 246, .05);
+  padding: 2px 5px;
+  color: #6488bd;
+  font-size: 8px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+#taskStartDate,
+#taskEndDate {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .02em;
+}

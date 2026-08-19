@@ -159,24 +159,91 @@
       .replaceAll("'", "&#039;");
   }
 
+  function normalizePersianDigits(value = "") {
+    const persian = "۰۱۲۳۴۵۶۷۸۹";
+    const arabic = "٠١٢٣٤٥٦٧٨٩";
+    return String(value)
+      .replace(/[۰-۹]/g, (digit) => persian.indexOf(digit))
+      .replace(/[٠-٩]/g, (digit) => arabic.indexOf(digit));
+  }
+
+  function parseJalaliDate(value) {
+    if (!value) return null;
+
+    const clean = normalizePersianDigits(value)
+      .trim()
+      .replaceAll("-", "/")
+      .replace(/\s+/g, "");
+
+    const match = clean.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+    if (!match) return null;
+
+    const jy = Number(match[1]);
+    const jm = Number(match[2]);
+    const jd = Number(match[3]);
+
+    if (typeof jalaali === "undefined" || !jalaali.isValidJalaaliDate(jy, jm, jd)) {
+      return null;
+    }
+
+    return { jy, jm, jd };
+  }
+
+  function formatJalaliInput(value) {
+    const parsed = parseJalaliDate(value);
+    if (!parsed) return value || "";
+    return `${parsed.jy}/${String(parsed.jm).padStart(2, "0")}/${String(parsed.jd).padStart(2, "0")}`;
+  }
+
   function formatDate(value) {
     if (!value) return "—";
-    const date = new Date(`${value}T00:00:00`);
-    if (Number.isNaN(date.getTime())) return value;
-    return new Intl.DateTimeFormat("en", {
-      year: "numeric",
-      month: "short",
-      day: "numeric"
-    }).format(date);
+
+    // New records are stored as Jalali YYYY/MM/DD.
+    const jalaliValue = parseJalaliDate(value);
+    if (jalaliValue) {
+      return new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+      }).format(
+        new Date(
+          jalaali.toGregorian(jalaliValue.jy, jalaliValue.jm, jalaliValue.jd).gy,
+          jalaali.toGregorian(jalaliValue.jy, jalaliValue.jm, jalaliValue.jd).gm - 1,
+          jalaali.toGregorian(jalaliValue.jy, jalaliValue.jm, jalaliValue.jd).gd
+        )
+      );
+    }
+
+    // Backward compatibility for previously saved Gregorian YYYY-MM-DD values.
+    const gregorianMatch = String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (gregorianMatch) {
+      const date = new Date(
+        Number(gregorianMatch[1]),
+        Number(gregorianMatch[2]) - 1,
+        Number(gregorianMatch[3])
+      );
+
+      return new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+      }).format(date);
+    }
+
+    return value;
   }
 
   function formatDateTime(value) {
     if (!value) return "";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "";
-    return new Intl.DateTimeFormat("en", {
-      dateStyle: "medium",
-      timeStyle: "short"
+
+    return new Intl.DateTimeFormat("fa-IR-u-ca-persian", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
     }).format(date);
   }
 
@@ -382,9 +449,20 @@
       }
 
       if (taskSortMode === "date") {
-        const aDate = a.endDate ? new Date(`${a.endDate}T00:00:00`).getTime() : Number.MAX_SAFE_INTEGER;
-        const bDate = b.endDate ? new Date(`${b.endDate}T00:00:00`).getTime() : Number.MAX_SAFE_INTEGER;
-        return aDate - bDate || a.priority - b.priority;
+        const toTimestamp = (value) => {
+          if (!value) return Number.MAX_SAFE_INTEGER;
+
+          const jalaliValue = parseJalaliDate(value);
+          if (jalaliValue) {
+            const g = jalaali.toGregorian(jalaliValue.jy, jalaliValue.jm, jalaliValue.jd);
+            return new Date(g.gy, g.gm - 1, g.gd).getTime();
+          }
+
+          const date = new Date(`${value}T00:00:00`);
+          return Number.isNaN(date.getTime()) ? Number.MAX_SAFE_INTEGER : date.getTime();
+        };
+
+        return toTimestamp(a.endDate) - toTimestamp(b.endDate) || a.priority - b.priority;
       }
 
       if (status === "done") {
@@ -635,8 +713,8 @@
           .split(",")
           .map((item) => item.trim())
           .filter(Boolean),
-        startDate: els.taskStartDate.value,
-        endDate: els.taskEndDate.value
+        startDate: els.taskStartDate.value.trim() ? formatJalaliInput(els.taskStartDate.value.trim()) : "",
+        endDate: els.taskEndDate.value.trim() ? formatJalaliInput(els.taskEndDate.value.trim()) : ""
       };
     }
 
@@ -655,6 +733,24 @@
 
     const id = els.taskId.value;
     const existing = id ? state.tasks.find((task) => task.id === id) : null;
+
+    if (currentUser.role === "admin" || currentUser.role === "task") {
+      const startRaw = els.taskStartDate.value.trim();
+      const endRaw = els.taskEndDate.value.trim();
+
+      if (startRaw && !parseJalaliDate(startRaw)) {
+        toast("Start date must be a valid Jalali date, for example 1405/01/01.");
+        els.taskStartDate.focus();
+        return;
+      }
+
+      if (endRaw && !parseJalaliDate(endRaw)) {
+        toast("End date must be a valid Jalali date, for example 1405/01/01.");
+        els.taskEndDate.focus();
+        return;
+      }
+    }
+
     const payload = collectTaskFormData(existing);
 
     if (!payload.title) return;

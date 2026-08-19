@@ -1,0 +1,12 @@
+{
+  "name": "amin-task-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lightweight Node.js + JSON task workspace",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -114,6 +114,90 @@
         </div>
       </section>
 
+      <section id="todayPanel" class="today-panel daily-log-panel">
+        <div class="daily-log-header">
+          <div>
+            <p class="workspace-kicker">Daily log</p>
+            <h2 class="daily-log-title">Mood & work journal</h2>
+            <p class="daily-log-subtitle">Pick any day to review or log your mood and working hours.</p>
+          </div>
+          <div class="today-mini-summary">
+            <span id="todayDate" class="today-date">—</span>
+            <span id="todayMoodBadge" class="today-mood-badge">No mood yet</span>
+            <span id="todayDuration" class="today-duration"><span class="today-duration-value">—</span><span class="today-duration-label">today</span></span>
+          </div>
+        </div>
+
+        <div class="calendar-toolbar">
+          <div class="calendar-toolbar-left">
+            <button id="prevMonthButton" type="button" class="month-nav-button">←</button>
+            <select id="jalaliMonthSelect" class="month-select">
+              <option value="1">فروردین</option><option value="2">اردیبهشت</option><option value="3">خرداد</option>
+              <option value="4">تیر</option><option value="5">مرداد</option><option value="6">شهریور</option>
+              <option value="7">مهر</option><option value="8">آبان</option><option value="9">آذر</option>
+              <option value="10">دی</option><option value="11">بهمن</option><option value="12">اسفند</option>
+            </select>
+            <select id="jalaliYearSelect" class="year-select">
+              <option value="1400">۱۴۰۰</option><option value="1401">۱۴۰۱</option><option value="1402">۱۴۰۲</option>
+              <option value="1403">۱۴۰۳</option><option value="1404">۱۴۰۴</option><option value="1405">۱۴۰۵</option>
+              <option value="1406">۱۴۰۶</option><option value="1407">۱۴۰۷</option><option value="1408">۱۴۰۸</option>
+              <option value="1409">۱۴۰۹</option><option value="1410">۱۴۱۰</option>
+            </select>
+            <button id="nextMonthButton" type="button" class="month-nav-button">→</button>
+          </div>
+          <div class="calendar-toolbar-right">
+            <span class="calendar-log-count"><strong id="loggedDaysCount">0</strong> logged days</span>
+            <div class="activity-legend"><span>Less</span><i data-level="0"></i><i data-level="1"></i><i data-level="2"></i><i data-level="3"></i><i data-level="4"></i><span>More</span></div>
+          </div>
+        </div>
+
+        <div class="calendar-and-editor">
+          <div class="monthly-calendar-card">
+            <div class="monthly-weekdays" dir="rtl">
+              <span>شنبه</span><span>یکشنبه</span><span>دوشنبه</span><span>سه‌شنبه</span><span>چهارشنبه</span><span>پنجشنبه</span><span>جمعه</span>
+            </div>
+            <div id="activityGrid" class="monthly-grid" dir="rtl"></div>
+          </div>
+
+          <aside id="dayEditor" class="day-editor">
+            <div class="day-editor-empty">
+              <div class="day-editor-empty-icon">↗</div>
+              <p>Select a day</p>
+              <span>Choose any date in the calendar to see its details.</span>
+            </div>
+            <div id="dayEditorContent" class="day-editor-content hidden">
+              <div class="day-editor-head">
+                <div>
+                  <p class="day-editor-eyebrow">Selected day</p>
+                  <h3 id="selectedDayTitle" class="selected-day-title">—</h3>
+                  <p id="selectedDayWeekday" class="selected-day-weekday">—</p>
+                </div>
+                <span id="selectedDayStatus" class="selected-day-status">No log</span>
+              </div>
+              <div class="selected-day-mood">
+                <span class="editor-label">Mood</span>
+                <div id="selectedMoodPicker" class="mood-picker editor-mood-picker">
+                  <button type="button" class="mood-option" data-selected-mood="1">😵</button>
+                  <button type="button" class="mood-option" data-selected-mood="2">😕</button>
+                  <button type="button" class="mood-option" data-selected-mood="3">😐</button>
+                  <button type="button" class="mood-option" data-selected-mood="4">🙂</button>
+                  <button type="button" class="mood-option" data-selected-mood="5">🔥</button>
+                </div>
+              </div>
+              <div class="selected-time-grid">
+                <label><span class="editor-label">Started</span><input id="selectedWorkStart" type="time" class="today-time-input" /></label>
+                <label><span class="editor-label">Finished</span><input id="selectedWorkEnd" type="time" class="today-time-input" /></label>
+              </div>
+              <div class="selected-duration-box"><span>Duration</span><strong id="selectedDuration">—</strong></div>
+              <button id="saveSelectedDay" type="button" class="today-save selected-day-save">Save this day</button>
+              <div id="readonlySelectedDay" class="readonly-selected-day hidden">Read-only. Only Amin can edit daily logs.</div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <div id="calendarTooltip" class="calendar-tooltip hidden"></div>
+
       <section class="stats-grid">
         <article class="stat-card stat-progress">
           <div class="stat-icon">
@@ -294,6 +378,22 @@
               <option value="done">Completed</option>
             </select>
           </label>
+
+          <label class="block sm:col-span-2">
+            <span class="form-label">Task color</span>
+            <div class="color-field-row">
+              <input id="taskColor" type="color" class="task-color-input" value="#3b82f6" />
+              <div id="taskColorPresets" class="color-presets">
+                <button type="button" class="color-preset" data-color="#3b82f6" style="--preset:#3b82f6" aria-label="Blue"></button>
+                <button type="button" class="color-preset" data-color="#22c55e" style="--preset:#22c55e" aria-label="Green"></button>
+                <button type="button" class="color-preset" data-color="#eab308" style="--preset:#eab308" aria-label="Yellow"></button>
+                <button type="button" class="color-preset" data-color="#f97316" style="--preset:#f97316" aria-label="Orange"></button>
+                <button type="button" class="color-preset" data-color="#ef4444" style="--preset:#ef4444" aria-label="Red"></button>
+                <button type="button" class="color-preset" data-color="#a855f7" style="--preset:#a855f7" aria-label="Purple"></button>
+                <button type="button" class="color-preset" data-color="#06b6d4" style="--preset:#06b6d4" aria-label="Cyan"></button>
+              </div>
+            </div>
+          </label>
         </div>
 
         <div id="extendedTaskFields" class="grid gap-4 sm:grid-cols-2">
@@ -391,7 +491,6 @@
 
   <div id="toast" class="pointer-events-none fixed bottom-5 left-1/2 z-[80] hidden -translate-x-1/2 rounded-xl border border-white/10 bg-zinc-900/95 px-4 py-3 text-sm text-zinc-200 shadow-2xl backdrop-blur"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/jalaali-js@1.2.8/dist/jalaali.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

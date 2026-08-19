@@ -1,60 +1,19 @@
 (() => {
   "use strict";
 
-  const USERS = {
-    amin: { password: "123456", role: "admin", label: "Amin" },
-    viewer: { password: "123456", role: "viewer", label: "Viewer" },
-    task: { password: "123456", role: "task", label: "Task" }
-  };
+  const API_BASE = "/api";
+  const TOKEN_KEY = "amin_workspace_token";
 
-  const STORAGE_KEY = "amin_workspace_v1";
-
-  const seedState = {
-    tasks: [
-      {
-        id: "task_demo_1",
-        title: "Build private task workspace",
-        description: "Prepare the first production version of the internal task management page.",
-        priority: 1,
-        status: "progress",
-        labels: ["workspace", "frontend"],
-        startDate: "",
-        endDate: "",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        notes: []
-      },
-      {
-        id: "task_demo_2",
-        title: "Connect the dashboard to a backend API",
-        description: "Replace local-only persistence with server-side auth and shared database storage.",
-        priority: 2,
-        status: "queue",
-        labels: ["backend"],
-        startDate: "",
-        endDate: "",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        notes: []
-      }
-    ],
-    requests: []
-  };
-
-  let state = loadState();
-
-  // Notes are direct actions now, not approval requests.
-  state.requests = state.requests.filter(
-    (request) => !["note_add", "note_edit", "note_delete"].includes(request.type)
-  );
-  saveState();
-
+  let state = { tasks: [], requests: [], dailyLogs: {} };
   let currentUser = null;
   let activeDetailTaskId = null;
   let confirmCallback = null;
   let taskSearchQuery = "";
   let taskFilterMode = "all";
   let taskSortMode = "priority";
+  let selectedJalaliMonth = null;
+  let selectedJalaliYear = null;
+  let selectedCalendarDay = null;
 
   const $ = (selector) => document.querySelector(selector);
 
@@ -98,6 +57,8 @@
     taskDescription: $("#taskDescription"),
     taskPriority: $("#taskPriority"),
     taskStatus: $("#taskStatus"),
+    taskColor: $("#taskColor"),
+    taskColorPresets: $("#taskColorPresets"),
     extendedTaskFields: $("#extendedTaskFields"),
     taskLabels: $("#taskLabels"),
     taskStartDate: $("#taskStartDate"),
@@ -121,29 +82,61 @@
     confirmMessage: $("#confirmMessage"),
     confirmActionButton: $("#confirmActionButton"),
 
-    toast: $("#toast")
+    toast: $("#toast"),
+    todayPanel: $("#todayPanel"),
+    todayDate: $("#todayDate"),
+    todayDuration: $("#todayDuration"),
+    todayMoodBadge: $("#todayMoodBadge"),
+    loggedDaysCount: $("#loggedDaysCount"),
+    jalaliMonthSelect: $("#jalaliMonthSelect"),
+    jalaliYearSelect: $("#jalaliYearSelect"),
+    prevMonthButton: $("#prevMonthButton"),
+    nextMonthButton: $("#nextMonthButton"),
+    activityGrid: $("#activityGrid"),
+    calendarTooltip: $("#calendarTooltip"),
+    dayEditor: $("#dayEditor"),
+    dayEditorContent: $("#dayEditorContent"),
+    selectedDayTitle: $("#selectedDayTitle"),
+    selectedDayWeekday: $("#selectedDayWeekday"),
+    selectedDayStatus: $("#selectedDayStatus"),
+    selectedMoodPicker: $("#selectedMoodPicker"),
+    selectedWorkStart: $("#selectedWorkStart"),
+    selectedWorkEnd: $("#selectedWorkEnd"),
+    selectedDuration: $("#selectedDuration"),
+    saveSelectedDay: $("#saveSelectedDay"),
+    readonlySelectedDay: $("#readonlySelectedDay")
   };
 
-  function loadState() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return structuredCloneSafe(seedState);
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed.tasks) || !Array.isArray(parsed.requests)) {
-        return structuredCloneSafe(seedState);
-      }
-      return parsed;
-    } catch {
-      return structuredCloneSafe(seedState);
-    }
+  function getToken() { return sessionStorage.getItem(TOKEN_KEY) || ""; }
+
+  function setToken(token) {
+    if (token) sessionStorage.setItem(TOKEN_KEY, token);
+    else sessionStorage.removeItem(TOKEN_KEY);
   }
 
-  function structuredCloneSafe(value) {
-    return JSON.parse(JSON.stringify(value));
+  async function api(path, options = {}) {
+    const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+    const token = getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
+    return data;
   }
 
-  function saveState() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  async function loadServerState() {
+    const data = await api("/state");
+    state = {
+      tasks: Array.isArray(data.tasks) ? data.tasks : [],
+      requests: Array.isArray(data.requests) ? data.requests : [],
+      dailyLogs: data.dailyLogs && typeof data.dailyLogs === "object" ? data.dailyLogs : {}
+    };
+  }
+
+  async function saveState() {
+    const data = await api("/state", { method: "PUT", body: JSON.stringify(state) });
+    state = data.state;
+    return state;
   }
 
   function uid(prefix = "id") {
@@ -158,6 +151,15 @@
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#039;");
   }
+
+  function div(a,b){return ~~(a/b)}
+  function mod(a,b){return a-~~(a/b)*b}
+  function jalCal(jy){const breaks=[-61,9,38,199,426,686,756,818,1111,1181,1210,1635,2060,2097,2192,2262,2324,2394,2456,3178];let bl=breaks.length,gy=jy+621,leapJ=-14,jp=breaks[0],jm,jump=0;if(jy<jp||jy>=breaks[bl-1])throw new Error("Invalid Jalali year");for(let i=1;i<bl;i++){jm=breaks[i];jump=jm-jp;if(jy<jm)break;leapJ+=div(jump,33)*8+div(mod(jump,33),4);jp=jm}let n=jy-jp;leapJ+=div(n,33)*8+div(mod(n,33)+3,4);if(mod(jump,33)===4&&jump-n===4)leapJ+=1;const leapG=div(gy,4)-div((div(gy,100)+1)*3,4)-150,march=20+leapJ-leapG;if(jump-n<6)n=n-jump+div(jump+4,33)*33;let leap=mod(mod(n+1,33)-1,4);if(leap===-1)leap=4;return{leap,gy,march}}
+  function g2d(gy,gm,gd){let d=div((gy+div(gm-8,6)+100100)*1461,4)+div(153*mod(gm+9,12)+2,5)+gd-34840408;d=d-div(div(gy+100100+div(gm-8,6),100)*3,4)+752;return d}
+  function d2g(jdn){let j=4*jdn+139361631;j=j+div(div(4*jdn+183187720,146097)*3,4)*4-3908;const i=div(mod(j,1461),4)*5+308,gd=div(mod(i,153),5)+1,gm=mod(div(i,153),12)+1,gy=div(j,1461)-100100+div(8-gm,6);return{gy,gm,gd}}
+  function j2d(jy,jm,jd){const r=jalCal(jy);return g2d(r.gy,3,r.march)+(jm-1)*31-div(jm,7)*(jm-7)+jd-1}
+  function toGregorian(jy,jm,jd){return d2g(j2d(jy,jm,jd))}
+  function isValidJalaliDate(jy,jm,jd){if(jy<-61||jy>3177||jm<1||jm>12||jd<1)return false;const ml=jm<=6?31:jm<=11?30:(jalCal(jy).leap===0?30:29);return jd<=ml}
 
   function normalizePersianDigits(value = "") {
     const persian = "۰۱۲۳۴۵۶۷۸۹";
@@ -182,7 +184,7 @@
     const jm = Number(match[2]);
     const jd = Number(match[3]);
 
-    if (typeof jalaali === "undefined" || !jalaali.isValidJalaaliDate(jy, jm, jd)) {
+    if (!isValidJalaliDate(jy, jm, jd)) {
       return null;
     }
 
@@ -207,9 +209,9 @@
         day: "numeric"
       }).format(
         new Date(
-          jalaali.toGregorian(jalaliValue.jy, jalaliValue.jm, jalaliValue.jd).gy,
-          jalaali.toGregorian(jalaliValue.jy, jalaliValue.jm, jalaliValue.jd).gm - 1,
-          jalaali.toGregorian(jalaliValue.jy, jalaliValue.jm, jalaliValue.jd).gd
+          toGregorian(jalaliValue.jy, jalaliValue.jm, jalaliValue.jd).gy,
+          toGregorian(jalaliValue.jy, jalaliValue.jm, jalaliValue.jd).gm - 1,
+          toGregorian(jalaliValue.jy, jalaliValue.jm, jalaliValue.jd).gd
         )
       );
     }
@@ -270,30 +272,26 @@
     if (!anyOpen) document.body.style.overflow = "";
   }
 
-  function login(username, password) {
-    const key = username.trim().toLowerCase();
-    const normalizedPassword = String(password).trim().toLowerCase();
-    const user = USERS[key];
-
-    if (!user || String(user.password).trim().toLowerCase() !== normalizedPassword) return false;
-
-    currentUser = {
-      username: key,
-      role: user.role,
-      label: user.label
-    };
-
+  async function login(username, password) {
+    const result = await api("/login", {
+      method: "POST",
+      body: JSON.stringify({ username: username.trim(), password: String(password).trim() })
+    });
+    setToken(result.token);
+    currentUser = result.user;
+    await loadServerState();
     els.loginForm.reset();
     els.loginError.classList.add("hidden");
     els.loginView.classList.add("hidden");
     els.appView.classList.remove("hidden");
-
     configureRoleUI();
     render();
+    renderTodayPanel();
     return true;
   }
 
   function logout() {
+    setToken("");
     currentUser = null;
     activeDetailTaskId = null;
     closeModal(els.taskModal);
@@ -366,7 +364,8 @@
           "status",
           "labels",
           "startDate",
-          "endDate"
+          "endDate",
+          "color"
         ];
 
         for (const field of fields) {
@@ -411,7 +410,7 @@
         _pendingCreate: true,
         _pendingDelete: false,
         _pendingTypes: ["create"],
-        _changedFields: ["title", "description", "priority", "status", "labels", "startDate", "endDate"],
+        _changedFields: ["title", "description", "priority", "status", "labels", "startDate", "endDate", "color"],
         _requestId: request.id
       }));
   }
@@ -454,7 +453,7 @@
 
           const jalaliValue = parseJalaliDate(value);
           if (jalaliValue) {
-            const g = jalaali.toGregorian(jalaliValue.jy, jalaliValue.jm, jalaliValue.jd);
+            const g = toGregorian(jalaliValue.jy, jalaliValue.jm, jalaliValue.jd);
             return new Date(g.gy, g.gm - 1, g.gd).getTime();
           }
 
@@ -511,7 +510,7 @@
     els.statQueue.textContent = queue.length;
     els.statDone.textContent = done.length;
 
-    if (currentUser.role === "admin") renderRequests();
+    if (currentUser.role === "admin") { renderRequests(); renderTodayPanel(); }
 
     if (activeDetailTaskId && !els.detailModal.classList.contains("hidden")) {
       const stillExists = state.tasks.some((task) => task.id === activeDetailTaskId);
@@ -602,7 +601,7 @@
     const extraLabelCount = Math.max(0, (task.labels || []).length - labelPreview.length);
 
     return `
-      <article class="task-card status-${task.status} ${task._pending ? "task-card-pending" : ""} ${task._pendingDelete ? "task-card-delete-pending" : ""}">
+      <article class="task-card status-${task.status} ${task._pending ? "task-card-pending" : ""} ${task._pendingDelete ? "task-card-delete-pending" : ""}" style="--task-color:${escapeHtml(task.color || "#3b82f6")}">
         <div class="task-card-topline">
           <div class="task-status-group">
             <span class="task-status-dot"></span>
@@ -675,6 +674,7 @@
     els.taskId.value = task?.id || "";
     els.taskPriority.value = task?.priority ?? 1;
     els.taskStatus.value = task?.status || "queue";
+    els.taskColor.value = task?.color || "#3b82f6";
     els.taskTitle.value = task?.title || "";
     els.taskDescription.value = task?.description || "";
 
@@ -703,7 +703,8 @@
       title: els.taskTitle.value.trim(),
       description: els.taskDescription.value.trim(),
       priority: Math.max(1, Number.parseInt(els.taskPriority.value, 10) || 1),
-      status: els.taskStatus.value
+      status: els.taskStatus.value,
+      color: els.taskColor.value || "#3b82f6"
     };
 
     if (currentUser.role === "admin" || currentUser.role === "task") {
@@ -726,7 +727,7 @@
     };
   }
 
-  function submitTaskForm(event) {
+  async function submitTaskForm(event) {
     event.preventDefault();
 
     if (!currentUser || currentUser.role === "viewer") return;
@@ -770,7 +771,7 @@
         toast("Task created.");
       }
 
-      saveState();
+      await saveState();
       closeModal(els.taskModal);
       render();
       return;
@@ -802,13 +803,13 @@
     } else {
       state.requests.push(request);
     }
-    saveState();
+    await saveState();
     closeModal(els.taskModal);
     toast(existing ? "Edit request sent to Amin." : "Create request sent to Amin.");
     render();
   }
 
-  function requestDelete(taskId) {
+  async function requestDelete(taskId) {
     const task = state.tasks.find((item) => item.id === taskId);
     if (!task) return;
 
@@ -816,10 +817,10 @@
       askConfirm(
         "Delete task",
         `Delete “${task.title}”? This cannot be undone.`,
-        () => {
+        async () => {
           state.tasks = state.tasks.filter((item) => item.id !== taskId);
           state.requests = state.requests.filter((request) => request.taskId !== taskId);
-          saveState();
+          await saveState();
           toast("Task deleted.");
           render();
         }
@@ -847,7 +848,7 @@
         createdBy: currentUser.username
       });
 
-      saveState();
+      await saveState();
       toast("Delete request sent to Amin.");
       render();
     }
@@ -914,7 +915,7 @@
     return details.join(" · ");
   }
 
-  function approveRequest(requestId) {
+  async function approveRequest(requestId) {
     const request = state.requests.find((item) => item.id === requestId);
     if (!request) return;
 
@@ -942,14 +943,14 @@
 
 
     state.requests = state.requests.filter((item) => item.id !== requestId);
-    saveState();
+    await saveState();
     toast("Request approved and applied.");
     render();
   }
 
-  function rejectRequest(requestId) {
+  async function rejectRequest(requestId) {
     state.requests = state.requests.filter((item) => item.id !== requestId);
-    saveState();
+    await saveState();
     toast("Request rejected. Original task restored.");
     render();
   }
@@ -1112,7 +1113,7 @@
     )];
   }
 
-  function submitNoteForm(event) {
+  async function submitNoteForm(event) {
     event.preventDefault();
 
     if (!currentUser || currentUser.role === "viewer") return;
@@ -1160,13 +1161,13 @@
       toast("Note added.");
     }
 
-    saveState();
+    await saveState();
     closeModal(els.noteModal);
     renderTaskDetails(taskId);
     render();
   }
 
-  function deleteNote(taskId, noteId) {
+  async function deleteNote(taskId, noteId) {
     const task = state.tasks.find((item) => item.id === taskId);
     const note = task?.notes?.find((item) => item.id === noteId);
     if (!task || !note) return;
@@ -1184,16 +1185,308 @@
       currentUser.role === "admin" && !isOwner
         ? `Delete ${note.author}'s note?`
         : "Delete this note?",
-      () => {
+      async () => {
         task.notes = task.notes.filter((item) => item.id !== noteId);
         task.updatedAt = new Date().toISOString();
 
-        saveState();
+        await saveState();
         renderTaskDetails(taskId);
         render();
         toast("Note deleted.");
       }
     );
+  }
+
+  function localDateKey(date = new Date()) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
+  function minutesBetween(start, end) {
+    if (!start || !end) return 0;
+    const [sh, sm] = start.split(":").map(Number);
+    const [eh, em] = end.split(":").map(Number);
+    if ([sh, sm, eh, em].some(Number.isNaN)) return 0;
+
+    let diff = (eh * 60 + em) - (sh * 60 + sm);
+    if (diff < 0) diff += 24 * 60;
+    return diff;
+  }
+
+  function formatDuration(minutes) {
+    if (!minutes) return "—";
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (!hours) return `${mins}m`;
+    if (!mins) return `${hours}h`;
+    return `${hours}h ${mins}m`;
+  }
+
+  function toJalali(gy, gm, gd) {
+    const gDaysInMonth = [31, (gy % 4 === 0 && gy % 100 !== 0) || gy % 400 === 0 ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let gy2 = gm > 2 ? gy + 1 : gy;
+    let days = 355666 + 365 * gy + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) + gd;
+    for (let i = 0; i < gm - 1; ++i) days += gDaysInMonth[i];
+
+    let jy = -1595 + 33 * Math.floor(days / 12053);
+    days %= 12053;
+    jy += 4 * Math.floor(days / 1461);
+    days %= 1461;
+
+    if (days > 365) {
+      jy += Math.floor((days - 1) / 365);
+      days = (days - 1) % 365;
+    }
+
+    if (days < 186) {
+      return { jy, jm: 1 + Math.floor(days / 31), jd: 1 + (days % 31) };
+    }
+
+    return { jy, jm: 7 + Math.floor((days - 186) / 30), jd: 1 + ((days - 186) % 30) };
+  }
+
+  function jalaliDateFromGregorian(date) {
+    return toJalali(date.getFullYear(), date.getMonth() + 1, date.getDate());
+  }
+
+  function jalaliMonthName(month) {
+    return [
+      "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+      "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"
+    ][month - 1] || "";
+  }
+
+  function persianWeekday(date) {
+    return new Intl.DateTimeFormat("fa-IR", { weekday: "long" }).format(date);
+  }
+
+  function persianDigits(value) {
+    return String(value).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
+  }
+
+  function getSharedLogs() {
+    if (!state.dailyLogs || typeof state.dailyLogs !== "object") state.dailyLogs = {};
+    if (!state.dailyLogs.amin) state.dailyLogs.amin = {};
+    return state.dailyLogs.amin;
+  }
+
+  function moodMeta(value) {
+    const map = {
+      1: { emoji: "😵", label: "Rough" },
+      2: { emoji: "😕", label: "Low" },
+      3: { emoji: "😐", label: "Okay" },
+      4: { emoji: "🙂", label: "Good" },
+      5: { emoji: "🔥", label: "Great" }
+    };
+    return map[Number(value)] || { emoji: "—", label: "No mood" };
+  }
+
+  function renderTodayPanel() {
+    if (!currentUser) return;
+    els.todayPanel.classList.remove("hidden");
+    const today = new Date();
+    const j = jalaliDateFromGregorian(today);
+    const logs = getSharedLogs();
+    const log = logs[localDateKey(today)] || {};
+    const mood = moodMeta(log.mood);
+
+    els.todayDate.textContent = `${persianDigits(j.jd)} ${jalaliMonthName(j.jm)} ${persianDigits(j.jy)}`;
+    els.todayMoodBadge.textContent = log.mood ? `${mood.emoji} ${mood.label}` : "No mood yet";
+    const durationValue = els.todayDuration?.querySelector(".today-duration-value");
+    if (durationValue) durationValue.textContent = formatDuration(minutesBetween(log.start, log.end));
+
+    renderActivityGrid();
+    if (selectedCalendarDay) renderSelectedDayEditor(selectedCalendarDay);
+  }
+
+  function renderSelectedDayEditor(day) {
+    selectedCalendarDay = day;
+    const log = getSharedLogs()[day.key] || {};
+    const isAdmin = currentUser?.role === "admin";
+    els.dayEditor.querySelector(".day-editor-empty")?.classList.add("hidden");
+    els.dayEditorContent.classList.remove("hidden");
+    els.selectedDayTitle.textContent = `${persianDigits(day.jd)} ${jalaliMonthName(day.jm)} ${persianDigits(day.jy)}`;
+    els.selectedDayWeekday.textContent = persianWeekday(day.date);
+
+    const hasLog = Object.keys(log).length > 0;
+    els.selectedDayStatus.textContent = hasLog ? "Logged" : "No log";
+    els.selectedDayStatus.classList.toggle("logged", hasLog);
+    els.selectedWorkStart.value = log.start || "";
+    els.selectedWorkEnd.value = log.end || "";
+    els.selectedDuration.textContent = formatDuration(minutesBetween(log.start, log.end));
+
+    els.selectedMoodPicker.querySelectorAll("[data-selected-mood]").forEach((button) => {
+      button.classList.toggle("active", Number(button.dataset.selectedMood) === Number(log.mood));
+      button.disabled = !isAdmin;
+    });
+    els.selectedWorkStart.disabled = !isAdmin;
+    els.selectedWorkEnd.disabled = !isAdmin;
+    els.saveSelectedDay.classList.toggle("hidden", !isAdmin);
+    els.readonlySelectedDay.classList.toggle("hidden", isAdmin);
+  }
+
+  async function saveSelectedDayLog() {
+    if (!currentUser || currentUser.role !== "admin") return toast("Only Amin can change the daily log.");
+    if (!selectedCalendarDay) return toast("Select a day first.");
+
+    const selectedMood = els.selectedMoodPicker.querySelector(".mood-option.active");
+    const mood = selectedMood ? Number(selectedMood.dataset.selectedMood) : null;
+    const start = els.selectedWorkStart.value;
+    const end = els.selectedWorkEnd.value;
+
+    getSharedLogs()[selectedCalendarDay.key] = {
+      date: selectedCalendarDay.key,
+      mood,
+      start,
+      end,
+      minutes: minutesBetween(start, end),
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      await saveState();
+      renderTodayPanel();
+      toast("Day saved.");
+    } catch (error) {
+      toast(error.message || "Could not save this day.");
+    }
+  }
+
+  function activityLevel(log) {
+    if (!log) return 0;
+    const minutes = Number(log.minutes || minutesBetween(log.start, log.end) || 0);
+    if (minutes >= 480) return 4;
+    if (minutes >= 300) return 3;
+    if (minutes >= 120) return 2;
+    return 1;
+  }
+
+  function jalaliMonthLength(jy, jm) {
+    if (jm <= 6) return 31;
+    if (jm <= 11) return 30;
+    return isValidJalaliDate(jy, 12, 30) ? 30 : 29;
+  }
+
+  function buildJalaliMonthDays(jy, jm) {
+    const days = [];
+    const length = jalaliMonthLength(jy, jm);
+
+    for (let jd = 1; jd <= length; jd += 1) {
+      const g = toGregorian(jy, jm, jd);
+      const date = new Date(g.gy, g.gm - 1, g.gd);
+      days.push({
+        jy,
+        jm,
+        jd,
+        date,
+        key: localDateKey(date)
+      });
+    }
+
+    return days;
+  }
+
+  function monthStartOffset(date) {
+    // CSS grid is RTL, visually Saturday -> Friday.
+    // JS: Sunday=0 ... Saturday=6. Saturday should be first cell (0).
+    return (date.getDay() + 1) % 7;
+  }
+
+  function renderActivityGrid() {
+    const logs = getSharedLogs();
+    const now = new Date();
+    const current = jalaliDateFromGregorian(now);
+
+    if (!selectedJalaliYear) selectedJalaliYear = current.jy;
+    if (!selectedJalaliMonth) selectedJalaliMonth = current.jm;
+
+    selectedJalaliYear = Math.max(1400, Math.min(1410, selectedJalaliYear));
+    els.jalaliMonthSelect.value = String(selectedJalaliMonth);
+    els.jalaliYearSelect.value = String(selectedJalaliYear);
+
+    const days = buildJalaliMonthDays(selectedJalaliYear, selectedJalaliMonth);
+    const cells = Array(monthStartOffset(days[0].date)).fill(null).concat(days);
+    while (cells.length % 7 !== 0) cells.push(null);
+
+    els.activityGrid.innerHTML = cells.map((day) => {
+      if (!day) return `<span class="month-day month-day-empty"></span>`;
+      const log = logs[day.key];
+      const mood = moodMeta(log?.mood);
+      const duration = log ? formatDuration(log.minutes || minutesBetween(log.start, log.end)) : "—";
+      const tooltipData = {
+        date: `${persianWeekday(day.date)} ${persianDigits(day.jd)} ${jalaliMonthName(day.jm)} ${persianDigits(day.jy)}`,
+        mood: log?.mood ? `${mood.emoji} ${mood.label}` : "—",
+        start: log?.start || "—",
+        end: log?.end || "—",
+        duration
+      };
+      return `<button type="button"
+        class="month-day ${day.key === localDateKey(now) ? "today" : ""} ${selectedCalendarDay?.key === day.key ? "selected" : ""}"
+        data-level="${activityLevel(log)}" data-calendar-day="1"
+        data-key="${escapeHtml(day.key)}" data-jy="${day.jy}" data-jm="${day.jm}" data-jd="${day.jd}"
+        data-date="${escapeHtml(day.date.toISOString())}" data-tooltip='${escapeHtml(JSON.stringify(tooltipData))}'>
+        <span class="month-day-number">${persianDigits(day.jd)}</span>${log ? '<span class="month-day-dot"></span>' : ''}
+      </button>`;
+    }).join("");
+
+    els.loggedDaysCount.textContent = days.filter((day) => logs[day.key]).length;
+    els.prevMonthButton.disabled = selectedJalaliYear === 1400 && selectedJalaliMonth === 1;
+    els.nextMonthButton.disabled = selectedJalaliYear === 1410 && selectedJalaliMonth === 12;
+  }
+
+  function changeSelectedMonth(delta) {
+    let y = selectedJalaliYear;
+    let m = selectedJalaliMonth + delta;
+    if (m < 1) { m = 12; y -= 1; }
+    if (m > 12) { m = 1; y += 1; }
+    if (y < 1400 || y > 1410) return;
+    selectedJalaliYear = y;
+    selectedJalaliMonth = m;
+    selectedCalendarDay = null;
+    els.dayEditorContent.classList.add("hidden");
+    els.dayEditor.querySelector(".day-editor-empty")?.classList.remove("hidden");
+    renderActivityGrid();
+  }
+
+  function showCalendarTooltip(target, event = null) {
+    if (!target?.dataset.tooltip) return;
+
+    let data;
+    try {
+      data = JSON.parse(target.dataset.tooltip);
+    } catch {
+      return;
+    }
+
+    els.calendarTooltip.innerHTML = `
+      <div class="tooltip-date" dir="rtl">${escapeHtml(data.date)}</div>
+      <div class="tooltip-row"><span>Mood</span><strong>${escapeHtml(data.mood)}</strong></div>
+      <div class="tooltip-row"><span>Worked</span><strong>${escapeHtml(data.start)} → ${escapeHtml(data.end)}</strong></div>
+      <div class="tooltip-row"><span>Duration</span><strong>${escapeHtml(data.duration)}</strong></div>
+    `;
+
+    els.calendarTooltip.classList.remove("hidden");
+
+    const rect = target.getBoundingClientRect();
+    const tooltipRect = els.calendarTooltip.getBoundingClientRect();
+
+    let left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+    let top = rect.top - tooltipRect.height - 10;
+
+    left = Math.max(10, Math.min(left, window.innerWidth - tooltipRect.width - 10));
+
+    if (top < 10) {
+      top = rect.bottom + 10;
+    }
+
+    els.calendarTooltip.style.left = `${left}px`;
+    els.calendarTooltip.style.top = `${top}px`;
+  }
+
+  function hideCalendarTooltip() {
+    els.calendarTooltip.classList.add("hidden");
   }
 
   function askConfirm(title, message, callback) {
@@ -1203,20 +1496,79 @@
     openModal(els.confirmModal);
   }
 
-  els.loginForm.addEventListener("submit", (event) => {
+  els.loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-
-    if (!login(els.username.value, els.password.value)) {
-      els.loginError.textContent = "Invalid username or password.";
-      els.loginError.classList.remove("hidden");
-      els.password.select();
-    }
+    els.loginError.classList.add("hidden");
+    try { await login(els.username.value, els.password.value); }
+    catch (error) { els.loginError.textContent=error.message||"Invalid username or password.";els.loginError.classList.remove("hidden");els.password.select(); }
   });
 
   els.logoutButton.addEventListener("click", logout);
   els.newTaskButton.addEventListener("click", () => openTaskForm());
   els.taskForm.addEventListener("submit", submitTaskForm);
   els.noteForm.addEventListener("submit", submitNoteForm);
+  els.taskColorPresets.addEventListener("click", (event) => { const p=event.target.closest("[data-color]"); if(p) els.taskColor.value=p.dataset.color; });
+  els.jalaliMonthSelect.addEventListener("change", (event) => {
+    selectedJalaliMonth = Number(event.target.value);
+    selectedCalendarDay = null;
+    els.dayEditorContent.classList.add("hidden");
+    els.dayEditor.querySelector(".day-editor-empty")?.classList.remove("hidden");
+    renderActivityGrid();
+  });
+
+  els.jalaliYearSelect.addEventListener("change", (event) => {
+    selectedJalaliYear = Number(event.target.value);
+    selectedCalendarDay = null;
+    els.dayEditorContent.classList.add("hidden");
+    els.dayEditor.querySelector(".day-editor-empty")?.classList.remove("hidden");
+    renderActivityGrid();
+  });
+
+  els.prevMonthButton.addEventListener("click", () => changeSelectedMonth(-1));
+  els.nextMonthButton.addEventListener("click", () => changeSelectedMonth(1));
+
+  els.selectedMoodPicker.addEventListener("click", (event) => {
+    if (currentUser?.role !== "admin") return;
+    const option = event.target.closest("[data-selected-mood]");
+    if (!option) return;
+    els.selectedMoodPicker.querySelectorAll("[data-selected-mood]").forEach((button) => {
+      button.classList.toggle("active", button === option);
+    });
+  });
+
+  const updateSelectedDurationPreview = () => {
+    els.selectedDuration.textContent = formatDuration(minutesBetween(els.selectedWorkStart.value, els.selectedWorkEnd.value));
+  };
+  els.selectedWorkStart.addEventListener("input", updateSelectedDurationPreview);
+  els.selectedWorkEnd.addEventListener("input", updateSelectedDurationPreview);
+  els.saveSelectedDay.addEventListener("click", saveSelectedDayLog);
+
+  els.activityGrid.addEventListener("mouseover", (event) => {
+    const day = event.target.closest("[data-calendar-day]");
+    if (day) showCalendarTooltip(day);
+  });
+
+  els.activityGrid.addEventListener("mouseout", (event) => {
+    const day = event.target.closest("[data-calendar-day]");
+    if (day && (!event.relatedTarget || !day.contains(event.relatedTarget))) hideCalendarTooltip();
+  });
+
+  els.activityGrid.addEventListener("click", (event) => {
+    const el = event.target.closest("[data-calendar-day]");
+    if (!el) return;
+    selectedCalendarDay = {
+      key: el.dataset.key,
+      jy: Number(el.dataset.jy),
+      jm: Number(el.dataset.jm),
+      jd: Number(el.dataset.jd),
+      date: new Date(el.dataset.date)
+    };
+    renderSelectedDayEditor(selectedCalendarDay);
+    renderActivityGrid();
+  });
+
+  window.addEventListener("scroll", hideCalendarTooltip, { passive: true });
+  window.addEventListener("resize", hideCalendarTooltip);
 
   els.taskSearch.addEventListener("input", (event) => {
     taskSearchQuery = event.target.value.trim().toLowerCase();
@@ -1273,11 +1625,9 @@
     }
   });
 
-  els.confirmActionButton.addEventListener("click", () => {
-    const callback = confirmCallback;
-    confirmCallback = null;
-    closeModal(els.confirmModal);
-    if (typeof callback === "function") callback();
+  els.confirmActionButton.addEventListener("click", async () => {
+    const callback=confirmCallback;confirmCallback=null;closeModal(els.confirmModal);
+    if(typeof callback==="function"){try{await callback()}catch(error){toast(error.message||"Could not save the change.")}}
   });
 
   document.addEventListener("keydown", (event) => {
@@ -1298,8 +1648,10 @@
     });
   });
 
-  // Security/UX requirement: every fresh page load starts at login.
-  // Authentication is intentionally not persisted in localStorage/sessionStorage.
-  els.loginView.classList.remove("hidden");
-  els.appView.classList.add("hidden");
+  async function restoreSession(){
+    if(!getToken()){els.loginView.classList.remove("hidden");els.appView.classList.add("hidden");return}
+    try{const r=await api("/me");currentUser=r.user;await loadServerState();els.loginView.classList.add("hidden");els.appView.classList.remove("hidden");configureRoleUI();render();renderTodayPanel()}
+    catch{setToken("");els.loginView.classList.remove("hidden");els.appView.classList.add("hidden")}
+  }
+  restoreSession();
 })();

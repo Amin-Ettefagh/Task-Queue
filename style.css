@@ -1486,3 +1486,540 @@ body {
   font-variant-numeric: tabular-nums;
   letter-spacing: .02em;
 }
+\n\n/* Server edition: task colors + Today */\n.task-card{border-left:2px solid var(--task-color,#3b82f6)}\n.task-card:hover{border-left-color:var(--task-color,#3b82f6)}\n.task-status-dot{background:var(--task-color,#3b82f6)!important;box-shadow:0 0 10px color-mix(in srgb,var(--task-color,#3b82f6) 34%,transparent)}\n.priority-pill{border-color:color-mix(in srgb,var(--task-color,#3b82f6) 22%,transparent);background:color-mix(in srgb,var(--task-color,#3b82f6) 8%,transparent);color:color-mix(in srgb,var(--task-color,#3b82f6) 72%,white)}\n.color-field-row{display:flex;align-items:center;gap:12px}.task-color-input{width:44px;height:38px;flex:0 0 auto;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:#09090b;padding:4px;cursor:pointer}.task-color-input::-webkit-color-swatch-wrapper{padding:0}.task-color-input::-webkit-color-swatch{border:0;border-radius:7px}.color-presets{display:flex;flex-wrap:wrap;gap:7px}.color-preset{width:26px;height:26px;border:3px solid #09090b;border-radius:8px;background:var(--preset);box-shadow:0 0 0 1px rgba(255,255,255,.08);transition:.15s}.color-preset:hover{transform:translateY(-1px) scale(1.06);box-shadow:0 0 0 1px rgba(255,255,255,.16)}\n.today-panel{margin-bottom:18px;overflow:hidden;border:1px solid rgba(255,255,255,.065);border-radius:20px;background:radial-gradient(circle at 85% 0%,rgba(59,130,246,.08),transparent 32%),rgba(10,10,12,.78)}.today-summary{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:20px 20px 18px}.today-date{margin:0;color:#f2f2f4;font-family:"Vazirmatn","Inter",sans-serif;font-size:clamp(20px,2.5vw,28px);font-weight:620;letter-spacing:-.025em}.today-greeting{margin:7px 0 0;color:#64646e;font-size:12px}.today-duration{display:flex;min-width:100px;flex-direction:column;align-items:flex-end}.today-duration-value{color:#8bb8fa;font-size:25px;font-weight:650;letter-spacing:-.04em;line-height:1}.today-duration-label{margin-top:5px;color:#4e4e57;font-size:9px;text-transform:uppercase;letter-spacing:.08em}.today-controls{display:grid;grid-template-columns:minmax(220px,1.3fr) minmax(130px,.6fr) minmax(130px,.6fr) auto;gap:10px;align-items:end;border-top:1px solid rgba(255,255,255,.045);padding:14px 20px}.today-control-block{display:flex;min-width:0;flex-direction:column;gap:7px}.today-control-label{color:#565660;font-size:9px;font-weight:650;letter-spacing:.08em;text-transform:uppercase}.mood-picker{display:flex;gap:5px}.mood-option{display:grid;width:38px;height:38px;place-items:center;border:1px solid rgba(255,255,255,.06);border-radius:10px;background:#09090b;font-size:17px;filter:grayscale(.55);opacity:.62;transition:.15s}.mood-option:hover,.mood-option.active{filter:grayscale(0);opacity:1}.mood-option.active{border-color:rgba(59,130,246,.28);background:rgba(59,130,246,.08);box-shadow:0 0 0 3px rgba(59,130,246,.045)}.today-time-input{width:100%;height:38px;border:1px solid rgba(255,255,255,.07);border-radius:10px;background:#08080a;padding:0 10px;color:#b9b9c0;outline:none;font-size:12px}.today-save{height:38px;border:1px solid rgba(59,130,246,.22);border-radius:10px;background:rgba(37,99,235,.92);padding:0 14px;color:white;font-size:11px;font-weight:650}.activity-card{border-top:1px solid rgba(255,255,255,.045);padding:16px 20px 18px}.activity-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:12px}.activity-title{margin:0;color:#aaaab2;font-size:11px;font-weight:600}.activity-copy{margin:4px 0 0;color:#46464e;font-size:9px}.activity-legend{display:flex;align-items:center;gap:4px;color:#4e4e57;font-size:8px}.activity-legend i,.activity-cell{display:block;width:10px;height:10px;border-radius:2.5px;background:#111318}.activity-legend i[data-level="1"],.activity-cell[data-level="1"]{background:#0c3a2a}.activity-legend i[data-level="2"],.activity-cell[data-level="2"]{background:#0c6739}.activity-legend i[data-level="3"],.activity-cell[data-level="3"]{background:#16a34a}.activity-legend i[data-level="4"],.activity-cell[data-level="4"]{background:#4ade80}.activity-scroll{overflow-x:auto;padding-bottom:4px}.activity-grid{display:flex;width:max-content;min-width:100%;gap:3px}.activity-week{display:grid;grid-template-rows:repeat(7,10px);gap:3px}.activity-cell{transition:.12s}.activity-cell:hover{position:relative;z-index:2;transform:scale(1.35);outline:1px solid rgba(255,255,255,.18)}\n@media(max-width:760px){.today-controls{grid-template-columns:1fr 1fr}.today-control-block:first-child{grid-column:1/-1}.today-save{grid-column:1/-1}}@media(max-width:480px){.today-summary{padding:16px}.today-controls,.activity-card{padding-inline:16px}.today-duration{min-width:72px}.mood-option{flex:1;width:auto}}\n
+
+/* =========================================================
+   Shared Jalali daily-log calendar
+   ========================================================= */
+
+.today-panel {
+  color: #f2f2f4;
+}
+
+.today-summary,
+.today-controls,
+.activity-card {
+  position: relative;
+  z-index: 1;
+}
+
+.today-mood-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  border: 1px solid rgba(59,130,246,.12);
+  border-radius: 999px;
+  background: rgba(59,130,246,.05);
+  padding: 0 10px;
+  color: #9abcf2;
+  font-size: 10px;
+  font-weight: 650;
+  margin-bottom: 8px;
+}
+
+.today-readonly-note {
+  border-top: 1px solid rgba(255,255,255,.05);
+  padding: 11px 20px;
+  color: #686872;
+  font-size: 10px;
+}
+
+.activity-card {
+  overflow: visible;
+}
+
+.activity-head {
+  align-items: flex-start;
+}
+
+.jalali-calendar-wrap {
+  min-width: 0;
+}
+
+.jalali-months {
+  display: grid;
+  grid-template-columns: repeat(53, minmax(10px, 1fr));
+  gap: 3px;
+  min-width: 715px;
+  margin: 0 0 7px 28px;
+}
+
+.jalali-month-label {
+  overflow: hidden;
+  color: #6d6d77;
+  font-family: "Vazirmatn", "Inter", sans-serif;
+  font-size: 9px;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.jalali-grid-shell {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 6px;
+  align-items: start;
+}
+
+.jalali-weekdays {
+  display: grid;
+  grid-template-rows: repeat(7, 12px);
+  gap: 3px;
+  padding-top: 0;
+  color: #505059;
+  font-family: "Vazirmatn", "Inter", sans-serif;
+  font-size: 8px;
+  line-height: 12px;
+  text-align: center;
+}
+
+.jalali-activity-grid {
+  gap: 3px;
+  min-width: 715px;
+}
+
+.activity-week {
+  grid-template-rows: repeat(7, 12px);
+  gap: 3px;
+}
+
+.activity-cell,
+.activity-legend i {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.activity-cell.spacer {
+  visibility: hidden;
+}
+
+.activity-cell[data-level="0"] {
+  background: #121419;
+}
+
+.activity-cell[data-level="1"] {
+  background: #0a3326;
+}
+
+.activity-cell[data-level="2"] {
+  background: #0d6238;
+}
+
+.activity-cell[data-level="3"] {
+  background: #16a34a;
+}
+
+.activity-cell[data-level="4"] {
+  background: #4ade80;
+  box-shadow: 0 0 10px rgba(74,222,128,.12);
+}
+
+.activity-cell:hover {
+  transform: scale(1.55);
+  outline: 1px solid rgba(255,255,255,.3);
+  box-shadow: 0 0 0 2px rgba(0,0,0,.85);
+}
+
+.activity-cell.future {
+  opacity: .22;
+}
+
+@media (max-width: 900px) {
+  .activity-head {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .activity-legend {
+    align-self: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .today-summary {
+    gap: 14px;
+  }
+
+  .today-date {
+    font-size: 19px;
+  }
+
+  .today-duration {
+    min-width: 88px;
+  }
+
+  .activity-scroll {
+    padding-bottom: 10px;
+  }
+
+  .jalali-months,
+  .jalali-activity-grid {
+    min-width: 680px;
+  }
+}
+
+
+/* Visibility hotfix for Jalali calendar */
+.jalali-month-label {
+  color: #a0a0aa;
+  font-size: 10px;
+  font-weight: 650;
+}
+.jalali-weekdays {
+  color: #85858f;
+  font-size: 9px;
+  font-weight: 650;
+}
+.activity-copy {
+  color: #777781;
+}
+
+
+/* =========================================================
+   Monthly Jalali calendar UX
+   ========================================================= */
+
+.monthly-calendar-card {
+  padding-bottom: 18px;
+}
+
+.monthly-calendar-head {
+  align-items: center;
+}
+
+.month-nav {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.month-nav-button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 9px;
+  background: #09090b;
+  color: #8b8b95;
+  cursor: pointer;
+  transition: .15s ease;
+}
+
+.month-nav-button:hover:not(:disabled) {
+  border-color: rgba(59,130,246,.25);
+  color: #c8dcfb;
+  background: rgba(59,130,246,.05);
+}
+
+.month-nav-button:disabled {
+  opacity: .28;
+  cursor: not-allowed;
+}
+
+.month-select {
+  height: 34px;
+  min-width: 112px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 9px;
+  background: #09090b;
+  padding: 0 28px 0 10px;
+  color: #d2d2d7;
+  outline: none;
+  font-family: "Vazirmatn", "Inter", sans-serif;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.jalali-year-label {
+  min-width: 42px;
+  color: #7d7d87;
+  font-family: "Vazirmatn", "Inter", sans-serif;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.monthly-calendar {
+  margin-top: 4px;
+}
+
+.monthly-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 7px;
+  color: #666670;
+  font-family: "Vazirmatn", "Inter", sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.monthly-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.month-day {
+  position: relative;
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,.055);
+  border-radius: 10px;
+  background: #0a0b0e;
+  color: #7d7d87;
+  cursor: pointer;
+  outline: none;
+  transition: transform .13s ease, border-color .13s ease, background .13s ease, color .13s ease;
+}
+
+.month-day:hover,
+.month-day:focus-visible {
+  z-index: 2;
+  transform: translateY(-1px);
+  border-color: rgba(255,255,255,.15);
+  color: #fff;
+}
+
+.month-day-empty {
+  visibility: hidden;
+  min-height: 54px;
+}
+
+.month-day-number {
+  font-family: "Vazirmatn", "Inter", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.month-day-dot {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: #4ade80;
+  box-shadow: 0 0 8px rgba(74,222,128,.26);
+}
+
+.month-day[data-level="1"] {
+  background: rgba(12,58,42,.34);
+  border-color: rgba(20,83,45,.25);
+}
+
+.month-day[data-level="2"] {
+  background: rgba(12,103,57,.38);
+  border-color: rgba(22,163,74,.26);
+}
+
+.month-day[data-level="3"] {
+  background: rgba(22,163,74,.42);
+  border-color: rgba(34,197,94,.30);
+  color: #d1fae5;
+}
+
+.month-day[data-level="4"] {
+  background: rgba(74,222,128,.48);
+  border-color: rgba(74,222,128,.42);
+  color: #f0fdf4;
+}
+
+.month-day.today {
+  box-shadow: inset 0 0 0 1px rgba(96,165,250,.65), 0 0 0 2px rgba(59,130,246,.07);
+}
+
+.month-day.future {
+  opacity: .34;
+}
+
+.calendar-legend {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 11px;
+}
+
+.calendar-tooltip {
+  position: fixed;
+  z-index: 120;
+  width: 230px;
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: 12px;
+  background: rgba(14,14,17,.98);
+  padding: 11px;
+  color: #d7d7dc;
+  box-shadow: 0 16px 45px rgba(0,0,0,.55);
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+}
+
+.calendar-tooltip.hidden {
+  display: none;
+}
+
+.tooltip-date {
+  margin-bottom: 9px;
+  color: #f0f0f2;
+  font-family: "Vazirmatn", "Inter", sans-serif;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.tooltip-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid rgba(255,255,255,.045);
+  padding: 6px 0 0;
+  margin-top: 6px;
+  color: #60606a;
+  font-size: 9px;
+}
+
+.tooltip-row strong {
+  color: #bdbdc5;
+  font-size: 9.5px;
+  font-weight: 600;
+  text-align: right;
+}
+
+@media (max-width: 760px) {
+  .monthly-calendar-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .month-nav {
+    width: 100%;
+  }
+
+  .month-select {
+    flex: 1;
+  }
+
+  .monthly-weekdays {
+    gap: 4px;
+    font-size: 8px;
+  }
+
+  .monthly-grid {
+    gap: 4px;
+  }
+
+  .month-day,
+  .month-day-empty {
+    min-height: 44px;
+    border-radius: 8px;
+  }
+
+  .month-day-number {
+    font-size: 10px;
+  }
+}
+
+/* V2 readable UI */
+body{background:#06090d;color:#f5f7fb}
+.daily-log-panel{overflow:hidden;border:1px solid rgba(255,255,255,.09)!important;border-radius:20px;background:#0c1118!important;margin-bottom:22px}
+.daily-log-header{display:flex;justify-content:space-between;gap:24px;padding:20px;border-bottom:1px solid rgba(255,255,255,.09)}
+.daily-log-title{margin:0;color:#f7f9fc;font-size:18px;font-weight:700}.daily-log-subtitle{margin:6px 0 0;color:#94a0b2;font-size:11px}
+.today-mini-summary,.calendar-toolbar-left,.calendar-toolbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.today-date,.today-mood-badge,.today-duration{display:inline-flex;min-height:34px;align-items:center;border:1px solid rgba(255,255,255,.09);border-radius:10px;background:#0a0f15;padding:0 10px;color:#dce2eb;font-size:10px}.today-duration{flex-direction:row;gap:6px}.today-duration-value{color:#8ebaff;font-size:12px;font-weight:700}.today-duration-label{margin:0;color:#788395;font-size:9px}
+.calendar-toolbar{display:flex;justify-content:space-between;gap:14px;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.015)}
+.month-nav-button,.month-select,.year-select{height:36px;border:1px solid rgba(255,255,255,.09);border-radius:9px;background:#0a0f15;color:#dbe1ea}.month-nav-button{width:36px}.month-select,.year-select{padding:0 28px 0 10px;font-family:"Vazirmatn","Inter",sans-serif;font-size:10px}.month-select{min-width:110px}.year-select{min-width:86px}.calendar-log-count{color:#8a95a6;font-size:10px}
+.calendar-and-editor{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;padding:16px 20px 20px}.monthly-calendar-card,.day-editor{border:1px solid rgba(255,255,255,.09);border-radius:14px;background:#090e14;padding:12px}
+.monthly-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px;color:#8a95a6;font-family:"Vazirmatn","Inter",sans-serif;font-size:9px;font-weight:650;text-align:center}.monthly-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.month-day,.month-day-empty{min-height:48px}.month-day{position:relative;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.055);border-radius:8px;background:#0c1219;color:#9da7b6;cursor:pointer}.month-day:hover{border-color:rgba(96,165,250,.38);background:#111a25;color:#fff}.month-day.selected{border-color:#4f8ff7;box-shadow:inset 0 0 0 1px rgba(79,143,247,.4);color:#fff}.month-day-empty{visibility:hidden}.month-day-number{font-family:"Vazirmatn","Inter",sans-serif;font-size:11px;font-weight:650}.month-day-dot{position:absolute;right:6px;bottom:6px;width:4px;height:4px;border-radius:999px;background:#4ade80}.month-day.today:after{content:"";position:absolute;top:5px;left:5px;width:5px;height:5px;border-radius:999px;background:#60a5fa}
+.month-day[data-level="0"]{background:#0d131a}.month-day[data-level="1"]{background:#0b2a1e}.month-day[data-level="2"]{background:#0d4a2a}.month-day[data-level="3"]{background:#116b38;color:#eafff0}.month-day[data-level="4"]{background:#22a657;color:#fff}
+.day-editor{background:#0b1118;padding:14px}.day-editor-empty{display:flex;min-height:260px;align-items:center;justify-content:center;flex-direction:column;text-align:center}.day-editor-empty.hidden,.day-editor-content.hidden{display:none}.day-editor-empty-icon{display:grid;width:38px;height:38px;place-items:center;border:1px solid rgba(255,255,255,.09);border-radius:11px;color:#7da0d4}.day-editor-empty p{margin:11px 0 3px;color:#e1e6ed;font-size:12px;font-weight:650}.day-editor-empty span{max-width:190px;color:#7e899a;font-size:9px}
+.day-editor-head{display:flex;justify-content:space-between;gap:12px;padding-bottom:13px;border-bottom:1px solid rgba(255,255,255,.09)}.day-editor-eyebrow{margin:0 0 4px;color:#6ea8ff;font-size:8px;font-weight:700}.selected-day-title{margin:0;color:#f4f7fa;font-family:"Vazirmatn","Inter",sans-serif;font-size:15px}.selected-day-weekday{margin:3px 0 0;color:#8792a3;font-family:"Vazirmatn","Inter",sans-serif;font-size:9px}.selected-day-status{height:24px;border:1px solid rgba(255,255,255,.09);border-radius:999px;padding:0 8px;color:#7e899a;font-size:8px;line-height:22px}.selected-day-status.logged{color:#7bd89a}
+.selected-day-mood{margin-top:14px}.editor-label{display:block;margin-bottom:7px;color:#8792a3;font-size:8px;font-weight:700}.editor-mood-picker{display:grid;grid-template-columns:repeat(5,1fr)}.editor-mood-picker .mood-option{width:100%}.selected-time-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:13px}.selected-duration-box{display:flex;justify-content:space-between;margin-top:12px;border:1px solid rgba(255,255,255,.09);border-radius:9px;padding:9px 10px;color:#8792a3;font-size:9px}.selected-duration-box strong{color:#dce4ef}.selected-day-save{width:100%;margin-top:12px}.readonly-selected-day{margin-top:12px;border:1px solid rgba(59,130,246,.14);border-radius:9px;background:rgba(59,130,246,.05);padding:9px;color:#86a2cb;font-size:9px}
+.workspace-copy,.task-description,.board-column-head p,.activity-copy{color:#8a95a6!important}.stat-label{color:#929cad!important}.stat-value,.board-column-head h2,.task-title,.approval-title{color:#f3f6fa!important}
+@media(max-width:980px){.calendar-and-editor{grid-template-columns:1fr}.day-editor-empty{min-height:140px}}@media(max-width:720px){.daily-log-header,.calendar-toolbar{flex-direction:column}.calendar-toolbar-left{width:100%}.month-select,.year-select{flex:1}.calendar-and-editor{padding-inline:12px}.monthly-grid{gap:4px}.month-day,.month-day-empty{min-height:42px}.selected-time-grid{grid-template-columns:1fr}}
+
+
+/* =========================================================
+   Task color cards — full-card tint without touching data
+   ========================================================= */
+
+.task-card {
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--task-color, #3b82f6) 11%, #0b0f14),
+      color-mix(in srgb, var(--task-color, #3b82f6) 4%, #080b10)
+    ) !important;
+  border-color:
+    color-mix(in srgb, var(--task-color, #3b82f6) 24%, rgba(255,255,255,.08)) !important;
+  border-left:
+    3px solid color-mix(in srgb, var(--task-color, #3b82f6) 78%, white 0%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.018),
+    0 10px 30px color-mix(in srgb, var(--task-color, #3b82f6) 5%, transparent);
+}
+
+.task-card:hover {
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--task-color, #3b82f6) 16%, #0c1118),
+      color-mix(in srgb, var(--task-color, #3b82f6) 7%, #090d13)
+    ) !important;
+  border-color:
+    color-mix(in srgb, var(--task-color, #3b82f6) 38%, rgba(255,255,255,.10)) !important;
+}
+
+.task-card .task-status-dot {
+  background: var(--task-color, #3b82f6) !important;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--task-color, #3b82f6) 10%, transparent),
+    0 0 12px color-mix(in srgb, var(--task-color, #3b82f6) 34%, transparent) !important;
+}
+
+.task-card .priority-pill {
+  border-color:
+    color-mix(in srgb, var(--task-color, #3b82f6) 34%, transparent) !important;
+  background:
+    color-mix(in srgb, var(--task-color, #3b82f6) 13%, transparent) !important;
+  color:
+    color-mix(in srgb, var(--task-color, #3b82f6) 72%, white) !important;
+}
+
+.task-card .label-chip {
+  border-color:
+    color-mix(in srgb, var(--task-color, #3b82f6) 20%, rgba(255,255,255,.05)) !important;
+  background:
+    color-mix(in srgb, var(--task-color, #3b82f6) 7%, rgba(255,255,255,.02)) !important;
+  color:
+    color-mix(in srgb, var(--task-color, #3b82f6) 48%, #b8c0cc) !important;
+}
+
+.task-card .card-action-primary:hover {
+  border-color:
+    color-mix(in srgb, var(--task-color, #3b82f6) 30%, rgba(255,255,255,.08)) !important;
+  background:
+    color-mix(in srgb, var(--task-color, #3b82f6) 8%, rgba(255,255,255,.025)) !important;
+  color:
+    color-mix(in srgb, var(--task-color, #3b82f6) 48%, white) !important;
+}
+
+.task-card.task-card-pending {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--task-color, #3b82f6) 12%, transparent),
+    0 10px 30px color-mix(in srgb, var(--task-color, #3b82f6) 5%, transparent);
+}
+
+.task-card.task-card-delete-pending {
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, #ef4444 11%, #0b0f14),
+      color-mix(in srgb, #ef4444 4%, #080b10)
+    ) !important;
+  border-color: rgba(239,68,68,.28) !important;
+  border-left-color: #ef4444 !important;
+}
